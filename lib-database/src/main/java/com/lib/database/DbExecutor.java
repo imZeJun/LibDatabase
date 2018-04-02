@@ -35,10 +35,22 @@ public class DbExecutor {
         mainHandler = new Handler(Looper.getMainLooper());
     }
 
+    /**
+     * 同步任务。
+     * @param uri ContentProvider 的 Uri。
+     * @param request 请求体。
+     * @return 请求结果。
+     */
     public DbResponse doSync(Uri uri, DbRequest request) {
         return getWorker(uri).doSync(request);
     }
 
+    /**
+     * 同步任务。
+     * @param uri ContentProvider 的 Uri。
+     * @param request 请求体。
+     * @return 控制任务执行。
+     */
     public Future doAsync(Uri uri, DbRequest request) {
         return getWorker(uri).doAsync(request);
     }
@@ -87,10 +99,21 @@ public class DbExecutor {
         return getWorker(uri).doSyncApplyBatch(operations);
     }
 
+    /**
+     * 根据表名返回在 ContentProvider 的 Uri。
+     * @param uri ContentProvider 的 Uri。
+     * @param tableName 表名。
+     * @return 指向表的 Uri。
+     */
     public Uri getTableUri(Uri uri, String tableName) {
         return getWorker(uri).getTableUri(tableName);
     }
-    
+
+    /**
+     * 根据指向表的 Uri 返回表名。
+     * @param uri 根据指向表的 Uri 返回表名。
+     * @return 表名。
+     */
     public String parseTableName(Uri uri) {
         return getWorker(uri).parseTableName(uri);
     }
