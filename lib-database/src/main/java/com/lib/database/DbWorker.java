@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+import com.lib.database.annotation.RequestType;
 import com.lib.database.callback.IBaseCallback;
 import com.lib.database.callback.IConverter;
 import com.lib.database.callback.IDeleteCallback;

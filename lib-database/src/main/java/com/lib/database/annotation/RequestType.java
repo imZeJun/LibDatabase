@@ -1,4 +1,4 @@
-package com.lib.database;
+package com.lib.database.annotation;
 
 import android.support.annotation.IntDef;
 import java.lang.annotation.Retention;

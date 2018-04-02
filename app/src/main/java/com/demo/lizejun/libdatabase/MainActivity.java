@@ -7,7 +7,7 @@ import android.util.Log;
 
 import com.lib.database.DbExecutor;
 import com.lib.database.DbRequest;
-import com.lib.database.RequestType;
+import com.lib.database.annotation.RequestType;
 import com.lib.database.callback.IConverter;
 import com.lib.database.callback.IQueryCallback;
 
@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
                         .requestType(RequestType.QUERY)
                         .projection(NetDBHelper.CacheTab.URL)
                         .projection(NetDBHelper.CacheTab.LOCAL_UPDATE_TIME)
-                        .IConverter(new IConverter<List<CacheBean>>() {
+                        .addConverter(new IConverter<List<CacheBean>>() {
 
                             @Override
                             public List<CacheBean> convert(Cursor cursor) {
@@ -45,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
                                     cacheBean.setUrl(url);
                                     cacheBean.setTime(time);
                                     list.add(cacheBean);
+                                }
+                                if (cursor != null) {
+                                    cursor.close();
                                 }
                                 Log.d(MainActivity.class.getSimpleName(), "main=" + Thread.currentThread().getId());
                                 return list;

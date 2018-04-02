@@ -3,6 +3,7 @@ package com.lib.database;
 
 import android.content.ContentValues;
 
+import com.lib.database.annotation.RequestType;
 import com.lib.database.callback.IBaseCallback;
 import com.lib.database.callback.IConverter;
 
@@ -13,7 +14,8 @@ import java.util.List;
 public class DbRequest {
 
     private String tableName;
-    private @RequestType int requestType;
+    private @RequestType
+    int requestType;
     private String selection;
     private List<String> selectionArgs = new ArrayList<>();
     private List<String> projection = new ArrayList<>();
@@ -177,8 +179,8 @@ public class DbRequest {
             return this;
         }
 
-        public Builder IConverter(IConverter IConverter) {
-            this.converter = IConverter;
+        public Builder addConverter(IConverter converter) {
+            this.converter = converter;
             return this;
         }
 
