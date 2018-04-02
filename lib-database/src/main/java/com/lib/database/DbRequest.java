@@ -2,6 +2,10 @@ package com.lib.database;
 
 
 import android.content.ContentValues;
+
+import com.lib.database.callback.IBaseCallback;
+import com.lib.database.callback.IConverter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,8 +21,8 @@ public class DbRequest {
     private String sortOrder;
     private String having;
     private ContentValues values = new ContentValues();
-    private BaseCallback baseCallback;
-    private Converter converter;
+    private IBaseCallback IBaseCallback;
+    private com.lib.database.callback.IConverter IConverter;
 
     public DbRequest(Builder builder) {
         this.tableName = builder.tableName;
@@ -31,8 +35,8 @@ public class DbRequest {
         this.sortOrder = builder.sortOrder;
         this.having = builder.having;
         this.values = builder.values;
-        this.baseCallback = builder.baseCallback;
-        this.converter = builder.converter;
+        this.IBaseCallback = builder.baseCallback;
+        this.IConverter = builder.converter;
     }
 
     public String getTableName() {
@@ -75,12 +79,12 @@ public class DbRequest {
         return values;
     }
 
-    public BaseCallback getBaseCallback() {
-        return baseCallback;
+    public IBaseCallback getIBaseCallback() {
+        return IBaseCallback;
     }
 
-    public Converter getConverter() {
-        return converter;
+    public IConverter getIConverter() {
+        return IConverter;
     }
 
     public static class Builder {
@@ -95,11 +99,51 @@ public class DbRequest {
         private String sortOrder;
         private String having;
         private ContentValues values = new ContentValues();
-        private BaseCallback baseCallback;
-        private Converter converter;
+        private IBaseCallback baseCallback;
+        private IConverter converter;
 
         public Builder tableName(String tableName) {
             this.tableName = tableName;
+            return this;
+        }
+
+        public Builder requestType(@RequestType int requestType) {
+            this.requestType = requestType;
+            return this;
+        }
+
+        public Builder selection(String selection) {
+            this.selection = selection;
+            return this;
+        }
+
+        public Builder groupBy(String groupBy) {
+            this.groupBy = groupBy;
+            return this;
+        }
+
+        public Builder limit(String limit) {
+            this.limit = limit;
+            return this;
+        }
+
+        public Builder sortOrder(String sortOrder) {
+            this.sortOrder = sortOrder;
+            return this;
+        }
+
+        public Builder having(String having) {
+            this.having = having;
+            return this;
+        }
+
+        public Builder IBaseCallback(IBaseCallback iBaseCallback) {
+            this.baseCallback = iBaseCallback;
+            return this;
+        }
+
+        public Builder IConverter(IConverter IConverter) {
+            this.converter = IConverter;
             return this;
         }
 
@@ -160,7 +204,7 @@ public class DbRequest {
 
         public DbRequest build() {
             if (converter == null) {
-                converter = new EmptyConverter();
+                converter = new CursorConverter();
             }
             return new DbRequest(this);
         }

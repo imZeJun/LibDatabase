@@ -5,6 +5,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+import com.lib.database.callback.IBaseCallback;
+import com.lib.database.callback.IConverter;
+import com.lib.database.callback.IDeleteCallback;
+import com.lib.database.callback.IInsertCallback;
+import com.lib.database.callback.IQueryCallback;
+import com.lib.database.callback.IUpdateCallback;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,8 +60,8 @@ public class DbWorker {
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
                 Cursor cursor = context.getContentResolver().query(Uri.withAppendedPath(authority, dbRequest.getTableName()), projection, selection, selectionArgs, dbRequest.getSortOrder());
-                Converter<T> converter = dbRequest.getConverter();
-                T value = converter.convert(cursor);
+                IConverter<T> IConverter = dbRequest.getIConverter();
+                T value = IConverter.convert(cursor);
                 response = new DbResponse<>();
                 response.setValue(value);
                 break;
@@ -99,7 +106,7 @@ public class DbWorker {
     }
 
     private  <T> void postResponse(DbRequest dbRequest, DbResponse<T> dbResponse) {
-        BaseCallback callback = dbRequest.getBaseCallback();
+        IBaseCallback callback = dbRequest.getIBaseCallback();
         if (callback != null) {
             switch (dbRequest.getRequestType()) {
                 case RequestType.QUERY:

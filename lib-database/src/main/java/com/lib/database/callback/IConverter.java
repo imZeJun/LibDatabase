@@ -1,7 +1,7 @@
-package com.lib.database;
+package com.lib.database.callback;
 
 import android.database.Cursor;
 
-public interface Converter<T> {
+public interface IConverter<T> {
     public T convert(Cursor cursor);
 }
