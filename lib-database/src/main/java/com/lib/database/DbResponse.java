@@ -1,11 +1,9 @@
 package com.lib.database;
 
-import android.net.Uri;
-
 public class DbResponse<T> {
 
     private T value;
-    private Uri insertResult;
+    private long insertResult;
     private int deleteResult;
     private int updateResult;
 
@@ -13,7 +11,7 @@ public class DbResponse<T> {
         return value;
     }
 
-    public Uri getInsertResult() {
+    public long getInsertResult() {
         return insertResult;
     }
 
@@ -29,7 +27,7 @@ public class DbResponse<T> {
         this.value = value;
     }
 
-    public void setInsertResult(Uri insertResult) {
+    public void setInsertResult(long insertResult) {
         this.insertResult = insertResult;
     }
 

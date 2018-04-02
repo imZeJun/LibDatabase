@@ -7,6 +7,7 @@ import com.lib.database.callback.IBaseCallback;
 import com.lib.database.callback.IConverter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DbRequest {
@@ -21,8 +22,10 @@ public class DbRequest {
     private String sortOrder;
     private String having;
     private ContentValues values = new ContentValues();
-    private IBaseCallback IBaseCallback;
+    private IBaseCallback callback;
     private com.lib.database.callback.IConverter IConverter;
+    private boolean rawQuery;
+    private boolean dealOnUiThread;
 
     public DbRequest(Builder builder) {
         this.tableName = builder.tableName;
@@ -35,8 +38,10 @@ public class DbRequest {
         this.sortOrder = builder.sortOrder;
         this.having = builder.having;
         this.values = builder.values;
-        this.IBaseCallback = builder.baseCallback;
+        this.callback = builder.callback;
         this.IConverter = builder.converter;
+        this.rawQuery = builder.rawQuery;
+        this.dealOnUiThread = builder.dealOnUiThread;
     }
 
     public String getTableName() {
@@ -79,12 +84,20 @@ public class DbRequest {
         return values;
     }
 
-    public IBaseCallback getIBaseCallback() {
-        return IBaseCallback;
+    public IBaseCallback getCallback() {
+        return callback;
     }
 
     public IConverter getIConverter() {
         return IConverter;
+    }
+
+    public boolean isRawQuery() {
+        return rawQuery;
+    }
+
+    public boolean isDealOnUiThread() {
+        return dealOnUiThread;
     }
 
     public static class Builder {
@@ -99,11 +112,33 @@ public class DbRequest {
         private String sortOrder;
         private String having;
         private ContentValues values = new ContentValues();
-        private IBaseCallback baseCallback;
+        private IBaseCallback callback;
         private IConverter converter;
+        private boolean rawQuery;
+        private boolean dealOnUiThread;
 
         public Builder tableName(String tableName) {
             this.tableName = tableName;
+            return this;
+        }
+
+        public Builder selectionArgs(String selection) {
+            this.selectionArgs.add(selection);
+            return this;
+        }
+
+        public Builder selectionArgs(String[] selectionArgs) {
+            this.selectionArgs = Arrays.asList(selectionArgs);
+            return this;
+        }
+
+        public Builder projection(String projection) {
+            this.projection.add(projection);
+            return this;
+        }
+
+        public Builder projection(String[] projection) {
+            this.projection = Arrays.asList(projection);
             return this;
         }
 
@@ -137,13 +172,18 @@ public class DbRequest {
             return this;
         }
 
-        public Builder IBaseCallback(IBaseCallback iBaseCallback) {
-            this.baseCallback = iBaseCallback;
+        public Builder addCallback(IBaseCallback callback) {
+            this.callback = callback;
             return this;
         }
 
         public Builder IConverter(IConverter IConverter) {
             this.converter = IConverter;
+            return this;
+        }
+
+        public Builder rawQuery(boolean rawQuery) {
+            this.rawQuery = rawQuery;
             return this;
         }
 
@@ -199,6 +239,11 @@ public class DbRequest {
 
         public Builder putNull(String key) {
             this.values.putNull(key);
+            return this;
+        }
+
+        public Builder dealOnUiThread(boolean dealOnUiThread) {
+            this.dealOnUiThread = dealOnUiThread;
             return this;
         }
 

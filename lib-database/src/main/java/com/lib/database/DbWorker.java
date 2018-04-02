@@ -1,6 +1,7 @@
 package com.lib.database;
 
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -12,13 +13,10 @@ import com.lib.database.callback.IInsertCallback;
 import com.lib.database.callback.IQueryCallback;
 import com.lib.database.callback.IUpdateCallback;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class DbWorker {
 
-    private ExecutorService executorService;
     private Context context;
     private Uri authority;
     private DbExecutor dbExecutor;
@@ -27,11 +25,10 @@ public class DbWorker {
         this.authority = authority;
         this.context = context;
         this.dbExecutor = dbExecutor;
-        executorService = Executors.newCachedThreadPool();
     }
 
     public Future doAsync(final DbRequest request) {
-        return executorService.submit(new Runnable() {
+        return dbExecutor.getExecutorService().submit(new Runnable() {
 
             @Override
             public void run() {
@@ -59,7 +56,21 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                Cursor cursor = context.getContentResolver().query(Uri.withAppendedPath(authority, dbRequest.getTableName()), projection, selection, selectionArgs, dbRequest.getSortOrder());
+                Uri.Builder builder = authority.buildUpon();
+                builder.appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName());
+                if (dbRequest.getGroupBy() != null) {
+                    builder.appendQueryParameter(Constant.GROUP_BY, dbRequest.getGroupBy());
+                }
+                if (dbRequest.getHaving() != null) {
+                    builder.appendQueryParameter(Constant.HAVING, dbRequest.getHaving());
+                }
+                if (dbRequest.getLimit() != null) {
+                    builder.appendQueryParameter(Constant.LIMIT, dbRequest.getLimit());
+                }
+                if (dbRequest.isRawQuery()) {
+                    builder.appendQueryParameter(Constant.RAW_QUERY, "true");
+                }
+                Cursor cursor = context.getContentResolver().query(builder.build(), projection, selection, selectionArgs, dbRequest.getSortOrder());
                 IConverter<T> IConverter = dbRequest.getIConverter();
                 T value = IConverter.convert(cursor);
                 response = new DbResponse<>();
@@ -67,9 +78,9 @@ public class DbWorker {
                 break;
             }
             case RequestType.INSERT: {
-                Uri uri = context.getContentResolver().insert(Uri.withAppendedPath(authority, dbRequest.getTableName()), dbRequest.getValues());
+                Uri uri = context.getContentResolver().insert(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), dbRequest.getValues());
                 response = new DbResponse<>();
-                response.setInsertResult(uri);
+                response.setInsertResult(ContentUris.parseId(uri));
                 break;
             }
             case RequestType.DELETE: {
@@ -79,7 +90,7 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                int count = context.getContentResolver().delete(Uri.withAppendedPath(authority, dbRequest.getTableName()), selection, selectionArgs);
+                int count = context.getContentResolver().delete(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), selection, selectionArgs);
                 response = new DbResponse<>();
                 response.setDeleteResult(count);
                 break;
@@ -91,7 +102,7 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                int count = context.getContentResolver().update(Uri.withAppendedPath(authority, dbRequest.getTableName()), dbRequest.getValues(), selection, selectionArgs);
+                int count = context.getContentResolver().update(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), dbRequest.getValues(), selection, selectionArgs);
                 response = new DbResponse<>();
                 response.setUpdateResult(count);
                 break;
@@ -105,8 +116,23 @@ public class DbWorker {
         return response;
     }
 
-    private  <T> void postResponse(DbRequest dbRequest, DbResponse<T> dbResponse) {
-        IBaseCallback callback = dbRequest.getIBaseCallback();
+    private  <T> void postResponse(final DbRequest dbRequest, final DbResponse<T> dbResponse) {
+        if (dbRequest.isDealOnUiThread()) {
+            dbExecutor.getMainHandler().post(new Runnable() {
+
+                @Override
+                public void run() {
+                    realPostResponse(dbRequest, dbResponse);
+                }
+
+            });
+        } else {
+            realPostResponse(dbRequest, dbResponse);
+        }
+    }
+
+    private  <T> void realPostResponse(DbRequest dbRequest, DbResponse<T> dbResponse) {
+        IBaseCallback callback = dbRequest.getCallback();
         if (callback != null) {
             switch (dbRequest.getRequestType()) {
                 case RequestType.QUERY:
@@ -124,7 +150,6 @@ public class DbWorker {
                     break;
             }
         }
-
     }
 
 }

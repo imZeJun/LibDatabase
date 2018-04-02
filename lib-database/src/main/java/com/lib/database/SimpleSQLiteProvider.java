@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 public abstract class SimpleSQLiteProvider extends SQLiteContentProvider {
@@ -60,26 +62,34 @@ public abstract class SimpleSQLiteProvider extends SQLiteContentProvider {
 
     @Override
     public Cursor onQuery(SQLiteDatabase db, Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        boolean rawQuery = uri.getBooleanQueryParameter("rawQuery", false);
+        boolean rawQuery = uri.getBooleanQueryParameter(Constant.RAW_QUERY, false);
         if (rawQuery) {
             return db.rawQuery(selection, selectionArgs);
         }
+
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        String limit = uri.getQueryParameter("limit");
-        String groupBy = uri.getQueryParameter("groupBy");
+        String limit = uri.getQueryParameter(Constant.LIMIT);
+        String groupBy = uri.getQueryParameter(Constant.GROUP_BY);
+        String having = uri.getQueryParameter(Constant.HAVING);
         String tableName = getDatabaseTableName(db, uri);
         if (tableName != null) {
             qb.setTables(tableName);
         } else {
             Log.e(TAG, "onQuery, Unknown insert URI " + uri);
         }
-        return qb.query(db, projection, selection, selectionArgs, groupBy, null, sortOrder, limit);
+        return qb.query(db, projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
     }
 
     protected String getDatabaseTableName(SQLiteDatabase database, Uri uri) {
         if (database == null) {
             return null;
         }
-        return uri.getPath();
+        return uri.getQueryParameter(Constant.TABLE_NAME);
+    }
+
+    @Nullable
+    @Override
+    public String getType(@NonNull Uri uri) {
+        return null;
     }
 }
