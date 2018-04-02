@@ -1,11 +1,14 @@
 package com.lib.database;
 
+import android.content.ContentProviderResult;
+
 public class DbResponse<T> {
 
     private T value;
     private long insertResult;
     private int deleteResult;
     private int updateResult;
+    private ContentProviderResult[] applyBatchResult;
 
     public T getValue() {
         return value;
@@ -23,6 +26,10 @@ public class DbResponse<T> {
         return updateResult;
     }
 
+    public ContentProviderResult[] getApplyBatchResult() {
+        return applyBatchResult;
+    }
+
     public void setValue(T value) {
         this.value = value;
     }
@@ -37,5 +44,9 @@ public class DbResponse<T> {
 
     public void setUpdateResult(int updateResult) {
         this.updateResult = updateResult;
+    }
+
+    public void setApplyBatchResult(ContentProviderResult[] applyBatchResult) {
+        this.applyBatchResult = applyBatchResult;
     }
 }

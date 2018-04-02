@@ -1,13 +1,17 @@
 package com.lib.database;
 
 
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 
 import com.lib.database.annotation.RequestType;
+import com.lib.database.callback.IApplyBatchCallback;
 import com.lib.database.callback.IBaseCallback;
 import com.lib.database.callback.IConverter;
 import com.lib.database.callback.IDeleteCallback;
@@ -15,16 +19,17 @@ import com.lib.database.callback.IInsertCallback;
 import com.lib.database.callback.IQueryCallback;
 import com.lib.database.callback.IUpdateCallback;
 
+import java.util.ArrayList;
 import java.util.concurrent.Future;
 
 public class DbWorker {
 
     private Context context;
-    private Uri authority;
+    private Uri databaseAuthorityUri;
     private DbExecutor dbExecutor;
 
-    public DbWorker(Context context, Uri authority, DbExecutor dbExecutor) {
-        this.authority = authority;
+    public DbWorker(Context context, Uri databaseAuthorityUri, DbExecutor dbExecutor) {
+        this.databaseAuthorityUri = databaseAuthorityUri;
         this.context = context;
         this.dbExecutor = dbExecutor;
     }
@@ -48,6 +53,7 @@ public class DbWorker {
                              String having, String sortOrder, String limit, IConverter<T> converter) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.QUERY)
                 .projection(projectionIn)
                 .selection(selection)
                 .selectionArgs(selectionArgs)
@@ -66,6 +72,7 @@ public class DbWorker {
                                String having, String sortOrder, String limit, IConverter converter, IQueryCallback callback, boolean dealOnUiThread) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.QUERY)
                 .projection(projectionIn)
                 .selection(selection)
                 .selectionArgs(selectionArgs)
@@ -83,6 +90,7 @@ public class DbWorker {
     public long doSyncInsert(String tableName, ContentValues values) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.INSERT)
                 .putAll(values)
                 .build();
         DbResponse dbResponse = doSync(dbRequest);
@@ -92,6 +100,7 @@ public class DbWorker {
     public Future doAsyncInsert(String tableName, ContentValues values, IInsertCallback callback, boolean dealOnUiThread) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.INSERT)
                 .putAll(values)
                 .addCallback(callback)
                 .dealOnUiThread(dealOnUiThread)
@@ -102,6 +111,7 @@ public class DbWorker {
     public int doSyncDelete(String tableName, String whereClause, String[] whereArgs) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.DELETE)
                 .selection(whereClause)
                 .selectionArgs(whereArgs)
                 .build();
@@ -112,6 +122,7 @@ public class DbWorker {
     public Future doAsyncDelete(String tableName, String whereClause, String[] whereArgs, IDeleteCallback callback, boolean dealOnUiThread) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.DELETE)
                 .selection(whereClause)
                 .selectionArgs(whereArgs)
                 .addCallback(callback)
@@ -123,6 +134,7 @@ public class DbWorker {
     public int doSyncUpdate(String tableName, ContentValues values, String whereClause, String[] whereArgs) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.UPDATE)
                 .selection(whereClause)
                 .selectionArgs(whereArgs)
                 .putAll(values).build();
@@ -133,6 +145,7 @@ public class DbWorker {
     public Future doAsyncUpdate(String tableName, ContentValues values, String whereClause, String[] whereArgs, IUpdateCallback callback, boolean dealOnUiThread) {
         DbRequest dbRequest = new DbRequest.Builder()
                 .tableName(tableName)
+                .requestType(RequestType.UPDATE)
                 .selection(whereClause)
                 .selectionArgs(whereArgs)
                 .putAll(values)
@@ -140,6 +153,37 @@ public class DbWorker {
                 .dealOnUiThread(dealOnUiThread)
                 .build();
         return doAsync(dbRequest);
+    }
+
+    public Future doAsyncApplyBatch(ArrayList<ContentProviderOperation> operations, IApplyBatchCallback callback) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .operations(operations)
+                .build();
+        return doAsync(dbRequest);
+    }
+
+    public ContentProviderResult[] doSyncApplyBatch(ArrayList<ContentProviderOperation> operations) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .operations(operations)
+                .build();
+        DbResponse dbResponse = doSync(dbRequest);
+        return dbResponse.getApplyBatchResult();
+    }
+
+    public void registerContentObserver(String tableName, boolean notifyForDescendants, ContentObserver observer) {
+        context.getContentResolver().registerContentObserver(getTableUri(tableName), notifyForDescendants, observer);
+    }
+
+    public final void unregisterContentObserver(ContentObserver observer) {
+        context.getContentResolver().unregisterContentObserver(observer);
+    }
+
+    public Uri getTableUri(String tableName) {
+        return databaseAuthorityUri.buildUpon().appendQueryParameter(Constant.TABLE_NAME, tableName).build();
+    }
+
+    public String parseTableName(Uri uri) {
+        return uri.getQueryParameter(Constant.TABLE_NAME);
     }
 
     private <T> DbResponse<T> doRealWork(boolean sync, DbRequest dbRequest) {
@@ -157,8 +201,7 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                Uri.Builder builder = authority.buildUpon();
-                builder.appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName());
+                Uri.Builder builder = getTableUri(dbRequest.getTableName()).buildUpon();
                 if (dbRequest.getGroupBy() != null) {
                     builder.appendQueryParameter(Constant.GROUP_BY, dbRequest.getGroupBy());
                 }
@@ -179,7 +222,7 @@ public class DbWorker {
                 break;
             }
             case RequestType.INSERT: {
-                Uri uri = context.getContentResolver().insert(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), dbRequest.getValues());
+                Uri uri = context.getContentResolver().insert(getTableUri(dbRequest.getTableName()), dbRequest.getValues());
                 response = new DbResponse<>();
                 response.setInsertResult(ContentUris.parseId(uri));
                 break;
@@ -191,7 +234,7 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                int count = context.getContentResolver().delete(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), selection, selectionArgs);
+                int count = context.getContentResolver().delete(getTableUri(dbRequest.getTableName()), selection, selectionArgs);
                 response = new DbResponse<>();
                 response.setDeleteResult(count);
                 break;
@@ -203,10 +246,20 @@ public class DbWorker {
                     selection = dbRequest.getSelection();
                     selectionArgs = dbRequest.getSelectionArgs().toArray(new String[]{});
                 }
-                int count = context.getContentResolver().update(authority.buildUpon().appendQueryParameter(Constant.TABLE_NAME, dbRequest.getTableName()).build(), dbRequest.getValues(), selection, selectionArgs);
+                int count = context.getContentResolver().update(getTableUri(dbRequest.getTableName()), dbRequest.getValues(), selection, selectionArgs);
                 response = new DbResponse<>();
                 response.setUpdateResult(count);
                 break;
+            }
+            case RequestType.APPLY_BATCH: {
+                ContentProviderResult[] results = new ContentProviderResult[0];
+                try {
+                    results = context.getContentResolver().applyBatch(databaseAuthorityUri.getAuthority(), dbRequest.getOperations());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                response = new DbResponse<>();
+                response.setApplyBatchResult(results);
             }
             default:
                 break;
@@ -247,6 +300,10 @@ public class DbWorker {
                     break;
                 case RequestType.UPDATE:
                     ((IUpdateCallback) callback).onUpdateComplete(dbResponse.getUpdateResult());
+                    break;
+                case RequestType.APPLY_BATCH:
+                    ((IApplyBatchCallback) callback).onApplyBatchComplete(dbResponse.getApplyBatchResult());
+                    break;
                 default:
                     break;
             }

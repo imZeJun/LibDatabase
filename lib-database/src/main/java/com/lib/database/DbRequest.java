@@ -1,6 +1,7 @@
 package com.lib.database;
 
 
+import android.content.ContentProviderOperation;
 import android.content.ContentValues;
 
 import com.lib.database.annotation.RequestType;
@@ -28,6 +29,7 @@ public class DbRequest {
     private com.lib.database.callback.IConverter IConverter;
     private boolean rawQuery;
     private boolean dealOnUiThread;
+    private ArrayList<ContentProviderOperation> operations = new ArrayList<>();
 
     public DbRequest(Builder builder) {
         this.tableName = builder.tableName;
@@ -44,6 +46,7 @@ public class DbRequest {
         this.IConverter = builder.converter;
         this.rawQuery = builder.rawQuery;
         this.dealOnUiThread = builder.dealOnUiThread;
+        this.operations = builder.operations;
     }
 
     public String getTableName() {
@@ -102,6 +105,10 @@ public class DbRequest {
         return dealOnUiThread;
     }
 
+    public ArrayList<ContentProviderOperation> getOperations() {
+        return operations;
+    }
+
     public static class Builder {
 
         private String tableName;
@@ -118,6 +125,7 @@ public class DbRequest {
         private IConverter converter;
         private boolean rawQuery;
         private boolean dealOnUiThread;
+        private ArrayList<ContentProviderOperation> operations = new ArrayList<>();
 
         public Builder tableName(String tableName) {
             this.tableName = tableName;
@@ -246,6 +254,11 @@ public class DbRequest {
 
         public Builder dealOnUiThread(boolean dealOnUiThread) {
             this.dealOnUiThread = dealOnUiThread;
+            return this;
+        }
+
+        public Builder operations(ArrayList<ContentProviderOperation> operations) {
+            this.operations = operations;
             return this;
         }
 

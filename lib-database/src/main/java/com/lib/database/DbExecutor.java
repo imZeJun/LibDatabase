@@ -1,18 +1,23 @@
 package com.lib.database;
 
 
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.lib.database.callback.IApplyBatchCallback;
 import com.lib.database.callback.IConverter;
 import com.lib.database.callback.IDeleteCallback;
 import com.lib.database.callback.IInsertCallback;
 import com.lib.database.callback.IQueryCallback;
 import com.lib.database.callback.IUpdateCallback;
 
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -72,6 +77,30 @@ public class DbExecutor {
 
     public Future doAsyncUpdate(Uri uri, String tableName, ContentValues values, String whereClause, String[] whereArgs, IUpdateCallback callback, boolean dealOnUiThread) {
         return getWorker(uri).doAsyncUpdate(tableName, values, whereClause, whereArgs, callback, dealOnUiThread);
+    }
+
+    public Future doAsyncApplyBatch(Uri uri, ArrayList<ContentProviderOperation> operations, IApplyBatchCallback callback) {
+        return getWorker(uri).doAsyncApplyBatch(operations, callback);
+    }
+
+    public ContentProviderResult[] doSyncApplyBatch(Uri uri, ArrayList<ContentProviderOperation> operations) {
+        return getWorker(uri).doSyncApplyBatch(operations);
+    }
+
+    public Uri getTableUri(Uri uri, String tableName) {
+        return getWorker(uri).getTableUri(tableName);
+    }
+    
+    public String parseTableName(Uri uri) {
+        return getWorker(uri).parseTableName(uri);
+    }
+
+    public void registerContentObserver(Uri uri, String tableName, boolean notifyForDescendants, ContentObserver observer) {
+        getWorker(uri).registerContentObserver(tableName, notifyForDescendants, observer);
+    }
+
+    public final void unregisterContentObserver(Uri uri, ContentObserver observer) {
+        getWorker(uri).unregisterContentObserver(observer);
     }
 
     private DbWorker getWorker(Uri uri) {
