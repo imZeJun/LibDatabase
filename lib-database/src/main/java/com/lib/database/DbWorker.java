@@ -2,6 +2,7 @@ package com.lib.database;
 
 
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -28,6 +29,10 @@ public class DbWorker {
         this.dbExecutor = dbExecutor;
     }
 
+    public <T> DbResponse<T> doSync(DbRequest dbRequest) {
+        return doRealWork(true, dbRequest);
+    }
+
     public Future doAsync(final DbRequest request) {
         return dbExecutor.getExecutorService().submit(new Runnable() {
 
@@ -38,8 +43,103 @@ public class DbWorker {
         });
     }
 
-    public <T> DbResponse<T> doSync(DbRequest dbRequest) {
-        return doRealWork(true, dbRequest);
+    public <T> T doSyncQuery(String tableName, String[] projectionIn,
+                             String selection, String[] selectionArgs, String groupBy,
+                             String having, String sortOrder, String limit, IConverter<T> converter) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .projection(projectionIn)
+                .selection(selection)
+                .selectionArgs(selectionArgs)
+                .groupBy(groupBy)
+                .having(having)
+                .sortOrder(sortOrder)
+                .limit(limit)
+                .addConverter(converter)
+                .build();
+        DbResponse<T> dbResponse = doSync(dbRequest);
+        return dbResponse.getValue();
+    }
+
+    public Future doAsyncQuery(String tableName, String[] projectionIn,
+                               String selection, String[] selectionArgs, String groupBy,
+                               String having, String sortOrder, String limit, IConverter converter, IQueryCallback callback, boolean dealOnUiThread) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .projection(projectionIn)
+                .selection(selection)
+                .selectionArgs(selectionArgs)
+                .groupBy(groupBy)
+                .having(having)
+                .sortOrder(sortOrder)
+                .limit(limit)
+                .addConverter(converter)
+                .addCallback(callback)
+                .dealOnUiThread(dealOnUiThread)
+                .build();
+        return doAsync(dbRequest);
+    }
+
+    public long doSyncInsert(String tableName, ContentValues values) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .putAll(values)
+                .build();
+        DbResponse dbResponse = doSync(dbRequest);
+        return dbResponse.getInsertResult();
+    }
+
+    public Future doAsyncInsert(String tableName, ContentValues values, IInsertCallback callback, boolean dealOnUiThread) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .putAll(values)
+                .addCallback(callback)
+                .dealOnUiThread(dealOnUiThread)
+                .build();
+        return doAsync(dbRequest);
+    }
+
+    public int doSyncDelete(String tableName, String whereClause, String[] whereArgs) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .selection(whereClause)
+                .selectionArgs(whereArgs)
+                .build();
+        DbResponse dbResponse = doSync(dbRequest);
+        return dbResponse.getDeleteResult();
+    }
+
+    public Future doAsyncDelete(String tableName, String whereClause, String[] whereArgs, IDeleteCallback callback, boolean dealOnUiThread) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .selection(whereClause)
+                .selectionArgs(whereArgs)
+                .addCallback(callback)
+                .dealOnUiThread(dealOnUiThread)
+                .build();
+        return doAsync(dbRequest);
+    }
+
+    public int doSyncUpdate(String tableName, ContentValues values, String whereClause, String[] whereArgs) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .selection(whereClause)
+                .selectionArgs(whereArgs)
+                .putAll(values).build();
+        DbResponse dbResponse = doSync(dbRequest);
+        return dbResponse.getUpdateResult();
+    }
+
+    public Future doAsyncUpdate(String tableName, ContentValues values, String whereClause, String[] whereArgs, IUpdateCallback callback, boolean dealOnUiThread) {
+        DbRequest dbRequest = new DbRequest.Builder()
+                .tableName(tableName)
+                .selection(whereClause)
+                .selectionArgs(whereArgs)
+                .putAll(values)
+                .addCallback(callback)
+                .dealOnUiThread(dealOnUiThread)
+                .build();
+        return doAsync(dbRequest);
     }
 
     private <T> DbResponse<T> doRealWork(boolean sync, DbRequest dbRequest) {
