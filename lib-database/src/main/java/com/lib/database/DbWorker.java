@@ -22,14 +22,21 @@ import com.lib.database.callback.IUpdateCallback;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 
+/**
+ * 用于处理单个数据库中的所有表。
+ */
 public class DbWorker {
 
     private Context context;
-    private Uri databaseAuthorityUri;
+
+    /**
+     * 该数据库关联的 ContentProvider 所对应的 Uri。
+     */
+    private Uri dbUri;
     private DbExecutor dbExecutor;
 
-    public DbWorker(Context context, Uri databaseAuthorityUri, DbExecutor dbExecutor) {
-        this.databaseAuthorityUri = databaseAuthorityUri;
+    public DbWorker(Context context, Uri dbUri, DbExecutor dbExecutor) {
+        this.dbUri = dbUri;
         this.context = context;
         this.dbExecutor = dbExecutor;
     }
@@ -179,7 +186,7 @@ public class DbWorker {
     }
 
     public Uri getTableUri(String tableName) {
-        return databaseAuthorityUri.buildUpon().appendQueryParameter(Constant.TABLE_NAME, tableName).build();
+        return dbUri.buildUpon().appendQueryParameter(Constant.TABLE_NAME, tableName).build();
     }
 
     public String parseTableName(Uri uri) {
@@ -254,7 +261,7 @@ public class DbWorker {
             case RequestType.APPLY_BATCH: {
                 ContentProviderResult[] results = new ContentProviderResult[0];
                 try {
-                    results = context.getContentResolver().applyBatch(databaseAuthorityUri.getAuthority(), dbRequest.getOperations());
+                    results = context.getContentResolver().applyBatch(dbUri.getAuthority(), dbRequest.getOperations());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
